@@ -1,0 +1,15 @@
+// xdv-edx bridge for xdv-os integration checks.
+
+forge XdvEdxBridge {
+    const EDX_VERSION: UInt32 = 1;
+
+    proc K::init() -> UInt32 {
+        emit "xdv-edx bridge online";
+        return EDX_VERSION;
+    }
+
+    proc K::launch(path: UInt64) -> UInt32 {
+        emit "xdv-edx launch path active";
+        return main(path);
+    }
+}

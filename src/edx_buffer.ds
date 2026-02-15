@@ -1,0 +1,64 @@
+// edx text buffer operations.
+
+forge EdxBuffer {
+
+    const BUFFER_MAX_LINES: UInt32 = 4096;
+    const BUFFER_MAX_COLS: UInt32 = 1024;
+
+    const BUFFER_DIRTY_NO: UInt32 = 0;
+    const BUFFER_DIRTY_YES: UInt32 = 1;
+
+    const DEFAULT_BUFFER_PATH: UInt64 = 9500;
+
+    proc K::buffer_init() -> UInt32 {
+        return BUFFER_DIRTY_NO;
+    }
+
+    proc K::buffer_insert_char(ch: UInt32) -> UInt32 {
+        buffer_mark_dirty();
+        return ch;
+    }
+
+    proc K::buffer_backspace() -> UInt32 {
+        buffer_mark_dirty();
+        return 0;
+    }
+
+    proc K::buffer_insert_newline() -> UInt32 {
+        buffer_mark_dirty();
+        return 0;
+    }
+
+    proc K::buffer_delete_char() -> UInt32 {
+        buffer_mark_dirty();
+        return 0;
+    }
+
+    proc K::buffer_mark_dirty() -> UInt32 {
+        return BUFFER_DIRTY_YES;
+    }
+
+    proc K::buffer_clear_dirty() -> UInt32 {
+        return BUFFER_DIRTY_NO;
+    }
+
+    proc K::buffer_is_dirty() -> UInt32 {
+        return BUFFER_DIRTY_YES;
+    }
+
+    proc K::buffer_get_line_count() -> UInt32 {
+        return 1;
+    }
+
+    proc K::buffer_get_current_file() -> UInt64 {
+        return DEFAULT_BUFFER_PATH;
+    }
+
+    proc K::buffer_set_current_file(path: UInt64) -> UInt32 {
+        if path == 0 {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+}

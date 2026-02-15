@@ -1,0 +1,33 @@
+// edx search and match navigation.
+
+forge EdxSearch {
+
+    const SEARCH_OK: UInt32 = 0;
+    const SEARCH_NOT_FOUND: UInt32 = 1;
+
+    proc K::search_next(query_ptr: UInt64) -> UInt32 {
+        if query_ptr == 0 {
+            return SEARCH_NOT_FOUND;
+        } else {
+            status_set_message(query_ptr);
+            return SEARCH_OK;
+        }
+    }
+
+    proc K::search_prev(query_ptr: UInt64) -> UInt32 {
+        if query_ptr == 0 {
+            return SEARCH_NOT_FOUND;
+        } else {
+            status_set_message(query_ptr);
+            return SEARCH_OK;
+        }
+    }
+
+    proc K::search_find_all(query_ptr: UInt64) -> UInt32 {
+        if query_ptr == 0 {
+            return SEARCH_NOT_FOUND;
+        } else {
+            return 1;
+        }
+    }
+}

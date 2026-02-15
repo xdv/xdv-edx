@@ -1,0 +1,16 @@
+# XDV EDX Workspace Manifest
+
+[workspace]
+name = "xdv_edx"
+version = "0.1.0"
+description = "XDV full-screen terminal text editor"
+
+[sector]
+name = "xdv_edx"
+path = "src"
+
+[dependencies]
+xdv_runtime = { path = "../xdv-runtime" }
+dustlib = { path = "../dustlib" }
+dustlib_k = { path = "../dustlib_k" }
+xdv_xdvfs = { path = "../xdv-xdvfs" }

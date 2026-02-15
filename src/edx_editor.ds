@@ -1,0 +1,143 @@
+// edx editor core loop and key dispatch.
+
+forge EdxEditor {
+
+    const EDITOR_RUNNING: UInt32 = 0;
+    const EDITOR_EXIT_REQUESTED: UInt32 = 1;
+
+    const KEY_CTRL_S: UInt32 = 19;
+    const KEY_CTRL_Q: UInt32 = 17;
+    const KEY_CTRL_F: UInt32 = 6;
+    const KEY_CTRL_G: UInt32 = 7;
+    const KEY_CTRL_H: UInt32 = 8;
+
+    const KEY_ENTER: UInt32 = 13;
+    const KEY_BACKSPACE: UInt32 = 127;
+
+    const KEY_ARROW_LEFT: UInt32 = 1000;
+    const KEY_ARROW_RIGHT: UInt32 = 1001;
+    const KEY_ARROW_UP: UInt32 = 1002;
+    const KEY_ARROW_DOWN: UInt32 = 1003;
+
+    const MSG_EDITOR_READY: UInt64 = 9400;
+    const MSG_EDITOR_SAVED: UInt64 = 9401;
+    const MSG_EDITOR_QUIT: UInt64 = 9402;
+
+    proc K::editor_init() -> UInt32 {
+        screen_init();
+        buffer_init();
+        cursor_reset();
+        status_set_ready();
+        status_set_message(MSG_EDITOR_READY);
+        return EDITOR_RUNNING;
+    }
+
+    proc K::editor_open(path: UInt64) -> UInt32 {
+        if path == 0 {
+            status_set_message(MSG_EDITOR_READY);
+            return EDITOR_RUNNING;
+        } else {
+            return file_open_into_buffer(path);
+        }
+    }
+
+    proc K::editor_save() -> UInt32 {
+        let path = buffer_get_current_file();
+        let save_result = file_write_from_buffer(path);
+        if save_result == EDITOR_RUNNING {
+            buffer_clear_dirty();
+            status_set_message(MSG_EDITOR_SAVED);
+            return EDITOR_RUNNING;
+        } else {
+            status_set_error(MSG_EDITOR_SAVED);
+            return save_result;
+        }
+    }
+
+    proc K::editor_run_loop(remaining_ticks: UInt32) -> UInt32 {
+        if remaining_ticks == 0 {
+            return EDITOR_RUNNING;
+        } else {
+            render_frame();
+            let loop_state = editor_handle_input();
+            if loop_state == EDITOR_EXIT_REQUESTED {
+                status_set_message(MSG_EDITOR_QUIT);
+                return EDITOR_RUNNING;
+            } else {
+                return editor_run_loop(remaining_ticks - 1);
+            }
+        }
+    }
+
+    proc K::editor_handle_input() -> UInt32 {
+        let key = read_key();
+        return editor_handle_key(key);
+    }
+
+    proc K::editor_handle_key(key: UInt32) -> UInt32 {
+        if key == KEY_CTRL_Q {
+            return EDITOR_EXIT_REQUESTED;
+        } else {
+            if key == KEY_CTRL_S {
+                editor_save();
+                return EDITOR_RUNNING;
+            } else {
+                if key == KEY_CTRL_F {
+                    command_search(0);
+                    return EDITOR_RUNNING;
+                } else {
+                    if key == KEY_CTRL_G {
+                        command_goto_line(1);
+                        return EDITOR_RUNNING;
+                    } else {
+                        if key == KEY_CTRL_H {
+                            help_show();
+                            return EDITOR_RUNNING;
+                        } else {
+                            if key == KEY_ENTER {
+                                buffer_insert_newline();
+                                return EDITOR_RUNNING;
+                            } else {
+                                if key == KEY_BACKSPACE {
+                                    buffer_backspace();
+                                    return EDITOR_RUNNING;
+                                } else {
+                                    return editor_handle_motion_or_text(key);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    proc K::editor_handle_motion_or_text(key: UInt32) -> UInt32 {
+        if key == KEY_ARROW_LEFT {
+            cursor_move_left();
+            return EDITOR_RUNNING;
+        } else {
+            if key == KEY_ARROW_RIGHT {
+                cursor_move_right();
+                return EDITOR_RUNNING;
+            } else {
+                if key == KEY_ARROW_UP {
+                    cursor_move_up();
+                    return EDITOR_RUNNING;
+                } else {
+                    if key == KEY_ARROW_DOWN {
+                        cursor_move_down();
+                        return EDITOR_RUNNING;
+                    } else {
+                        if input_is_printable(key) == 1 {
+                            buffer_insert_char(key);
+                            return EDITOR_RUNNING;
+                        } else {
+                            return EDITOR_RUNNING;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,51 @@
+// edx file loading and saving workflows.
+
+forge EdxFile {
+
+    const FILE_MODE_READ: UInt32 = 0;
+    const FILE_MODE_WRITE: UInt32 = 1;
+    const FILE_READ_SIZE: UInt32 = 4096;
+
+    const FILE_ERR_OK: UInt32 = 0;
+    const FILE_ERR_OPEN: UInt32 = 1;
+    const FILE_ERR_IO: UInt32 = 2;
+
+    proc K::file_open_into_buffer(path: UInt64) -> UInt32 {
+        if path == 0 {
+            return FILE_ERR_OPEN;
+        } else {
+            let fd = open(path, FILE_MODE_READ);
+            if fd == 0 {
+                return FILE_ERR_OPEN;
+            } else {
+                read(fd, 0, FILE_READ_SIZE);
+                close(fd);
+                buffer_set_current_file(path);
+                return FILE_ERR_OK;
+            }
+        }
+    }
+
+    proc K::file_write_from_buffer(path: UInt64) -> UInt32 {
+        if path == 0 {
+            return FILE_ERR_OPEN;
+        } else {
+            let fd = open(path, FILE_MODE_WRITE);
+            if fd == 0 {
+                return FILE_ERR_OPEN;
+            } else {
+                write(fd, 0, FILE_READ_SIZE);
+                close(fd);
+                return FILE_ERR_OK;
+            }
+        }
+    }
+
+    proc K::file_exists(path: UInt64) -> UInt32 {
+        if path == 0 {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+}

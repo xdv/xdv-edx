@@ -1,0 +1,60 @@
+// edx command handlers.
+
+forge EdxCommands {
+
+    const CMD_SAVE: UInt64 = 9601;
+    const CMD_QUIT: UInt64 = 9602;
+    const CMD_SAVE_QUIT: UInt64 = 9603;
+    const CMD_SEARCH: UInt64 = 9604;
+    const CMD_GOTO: UInt64 = 9605;
+
+    proc K::command_save() -> UInt32 {
+        return editor_save();
+    }
+
+    proc K::command_quit() -> UInt32 {
+        return 1;
+    }
+
+    proc K::command_save_quit() -> UInt32 {
+        command_save();
+        return command_quit();
+    }
+
+    proc K::command_search(query_ptr: UInt64) -> UInt32 {
+        return search_next(query_ptr);
+    }
+
+    proc K::command_goto_line(line_number: UInt32) -> UInt32 {
+        if line_number == 0 {
+            return 1;
+        } else {
+            set_cursor(line_number - 1, 0);
+            return 0;
+        }
+    }
+
+    proc K::run_command(command_ptr: UInt64) -> UInt32 {
+        if command_ptr == CMD_SAVE {
+            return command_save();
+        } else {
+            if command_ptr == CMD_QUIT {
+                return command_quit();
+            } else {
+                if command_ptr == CMD_SAVE_QUIT {
+                    return command_save_quit();
+                } else {
+                    if command_ptr == CMD_SEARCH {
+                        return command_search(0);
+                    } else {
+                        if command_ptr == CMD_GOTO {
+                            return command_goto_line(1);
+                        } else {
+                            return 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

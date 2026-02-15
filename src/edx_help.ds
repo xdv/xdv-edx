@@ -1,0 +1,23 @@
+// edx help overlay.
+
+forge EdxHelp {
+
+    const HELP_LINE_1: UInt64 = 9801;
+    const HELP_LINE_2: UInt64 = 9802;
+    const HELP_LINE_3: UInt64 = 9803;
+
+    proc K::help_show() -> UInt32 {
+        emit "edx help:";
+        puts(HELP_LINE_1);
+        putchar(10);
+        puts(HELP_LINE_2);
+        putchar(10);
+        puts(HELP_LINE_3);
+        putchar(10);
+        return 0;
+    }
+
+    proc K::help_hide() -> UInt32 {
+        return render_frame();
+    }
+}

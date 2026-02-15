@@ -1,0 +1,37 @@
+// edx status line and messaging.
+
+forge EdxStatus {
+
+    const STATUS_READY: UInt64 = 9701;
+    const STATUS_ERROR: UInt64 = 9702;
+    const STATUS_HINT: UInt64 = 9703;
+
+    proc K::status_set_ready() -> UInt32 {
+        return status_set_message(STATUS_READY);
+    }
+
+    proc K::status_set_message(message_ptr: UInt64) -> UInt32 {
+        puts(message_ptr);
+        putchar(10);
+        return 0;
+    }
+
+    proc K::status_set_error(message_ptr: UInt64) -> UInt32 {
+        set_color(12, 0);
+        status_set_message(message_ptr);
+        set_color(15, 0);
+        return 0;
+    }
+
+    proc K::status_draw_bar() -> UInt32 {
+        set_color(0, 7);
+        putchar(32);
+        set_color(15, 0);
+        return 0;
+    }
+
+    proc K::status_draw_message() -> UInt32 {
+        putchar(10);
+        return 0;
+    }
+}

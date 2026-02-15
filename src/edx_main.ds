@@ -1,0 +1,50 @@
+// edx main entry and runtime lifecycle.
+
+forge EdxMainErrors {
+    const ERR_OK: UInt32 = 0;
+    const ERR_INIT_FAILED: UInt32 = 1;
+    const ERR_LOOP_FAILED: UInt32 = 2;
+}
+
+forge EdxMain {
+
+    const VERSION_MAJOR: UInt8 = 0;
+    const VERSION_MINOR: UInt8 = 1;
+    const VERSION_PATCH: UInt8 = 0;
+
+    const DEFAULT_TICKS: UInt32 = 65535;
+
+    proc K::main(path: UInt64) -> UInt32 {
+        return boot(path);
+    }
+
+    proc K::boot(path: UInt64) -> UInt32 {
+        let init_result = init();
+        if init_result == ERR_OK {
+            return launch(path);
+        } else {
+            return ERR_INIT_FAILED;
+        }
+    }
+
+    proc K::init() -> UInt32 {
+        emit "edx: initialize";
+        editor_init();
+        return ERR_OK;
+    }
+
+    proc K::launch(path: UInt64) -> UInt32 {
+        emit "edx: launch";
+        editor_open(path);
+        return run();
+    }
+
+    proc K::run() -> UInt32 {
+        let loop_result = editor_run_loop(DEFAULT_TICKS);
+        if loop_result == ERR_OK {
+            return ERR_OK;
+        } else {
+            return ERR_LOOP_FAILED;
+        }
+    }
+}

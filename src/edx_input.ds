@@ -1,0 +1,70 @@
+// edx key input and decode helpers.
+
+forge EdxInput {
+
+    const KEY_ESCAPE: UInt32 = 27;
+    const KEY_ARROW_LEFT: UInt32 = 1000;
+    const KEY_ARROW_RIGHT: UInt32 = 1001;
+    const KEY_ARROW_UP: UInt32 = 1002;
+    const KEY_ARROW_DOWN: UInt32 = 1003;
+
+    const ASCII_PRINTABLE_MIN: UInt32 = 32;
+    const ASCII_PRINTABLE_MAX: UInt32 = 126;
+
+    proc K::read_key() -> UInt32 {
+        let key = getchar();
+        if key == KEY_ESCAPE {
+            return decode_escape_sequence();
+        } else {
+            return key;
+        }
+    }
+
+    proc K::decode_escape_sequence() -> UInt32 {
+        let first = getchar();
+        let second = getchar();
+        if first == 91 {
+            if second == 65 {
+                return KEY_ARROW_UP;
+            } else {
+                if second == 66 {
+                    return KEY_ARROW_DOWN;
+                } else {
+                    if second == 67 {
+                        return KEY_ARROW_RIGHT;
+                    } else {
+                        if second == 68 {
+                            return KEY_ARROW_LEFT;
+                        } else {
+                            return KEY_ESCAPE;
+                        }
+                    }
+                }
+            }
+        } else {
+            return KEY_ESCAPE;
+        }
+    }
+
+    proc K::input_is_printable(key: UInt32) -> UInt32 {
+        if key < ASCII_PRINTABLE_MIN {
+            return 0;
+        } else {
+            if key > ASCII_PRINTABLE_MAX {
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+    }
+
+    proc K::read_command_line(prompt_ptr: UInt64, output_ptr: UInt64, max_len: UInt32) -> UInt32 {
+        puts(prompt_ptr);
+        if max_len == 0 {
+            return 1;
+        } else {
+            read_key();
+            return 0;
+        }
+    }
+}
