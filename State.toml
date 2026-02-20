@@ -12,5 +12,6 @@ path = "src"
 [dependencies]
 xdv_runtime = { path = "../xdv-runtime" }
 dustlib = { path = "../dustlib" }
-dustlib_k = { path = "../dustlib_k" }
+dustlib_k = { path = "../dustlib-k" }
 xdv_xdvfs = { path = "../xdv-xdvfs" }
+
