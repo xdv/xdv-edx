@@ -1,4 +1,7 @@
-// edx key input and decode helpers.
+// File: edx_input.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx key input and decode helpers.
 
 forge EdxInput {
 

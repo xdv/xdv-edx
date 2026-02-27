@@ -1,4 +1,7 @@
-// edx search and match navigation.
+// File: edx_search.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx search and match navigation.
 
 forge EdxSearch {
 

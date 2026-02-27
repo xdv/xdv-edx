@@ -1,4 +1,7 @@
-// edx text buffer operations.
+// File: edx_buffer.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx text buffer operations.
 
 forge EdxBuffer {
 

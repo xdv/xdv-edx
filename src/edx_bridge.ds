@@ -1,4 +1,7 @@
-// xdv-edx bridge for xdv-os integration checks.
+// File: edx_bridge.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   xdv-edx bridge for xdv-os integration checks.
 
 forge XdvEdxBridge {
     const EDX_VERSION: UInt32 = 1;

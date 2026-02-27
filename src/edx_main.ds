@@ -1,4 +1,7 @@
-// edx main entry and runtime lifecycle.
+// File: edx_main.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx main entry and runtime lifecycle.
 
 forge EdxMainErrors {
     const ERR_OK: UInt32 = 0;

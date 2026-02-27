@@ -1,4 +1,7 @@
-// edx cursor state and movement.
+// File: edx_cursor.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx cursor state and movement.
 
 forge EdxCursor {
 

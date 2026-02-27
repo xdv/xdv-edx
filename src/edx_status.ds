@@ -1,4 +1,7 @@
-// edx status line and messaging.
+// File: edx_status.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx status line and messaging.
 
 forge EdxStatus {
 

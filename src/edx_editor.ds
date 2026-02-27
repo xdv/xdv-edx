@@ -1,4 +1,7 @@
-// edx editor core loop and key dispatch.
+// File: edx_editor.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx editor core loop and key dispatch.
 
 forge EdxEditor {
 

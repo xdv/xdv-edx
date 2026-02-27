@@ -1,4 +1,7 @@
-// edx help overlay.
+// File: edx_help.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx help overlay.
 
 forge EdxHelp {
 

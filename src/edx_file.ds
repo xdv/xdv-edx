@@ -1,4 +1,7 @@
-// edx file loading and saving workflows.
+// File: edx_file.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx file loading and saving workflows.
 
 forge EdxFile {
 

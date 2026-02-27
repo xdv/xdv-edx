@@ -1,4 +1,7 @@
-// edx screen rendering.
+// File: edx_screen.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx screen rendering.
 
 forge EdxScreen {
 

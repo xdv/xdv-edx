@@ -1,4 +1,7 @@
-// edx command handlers.
+// File: edx_commands.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   edx command handlers.
 
 forge EdxCommands {
 
