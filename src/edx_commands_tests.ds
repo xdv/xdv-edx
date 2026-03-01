@@ -1,0 +1,78 @@
+// File: edx_commands_tests.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Regression tests for command and keypath dispatch.
+
+forge EdxCommandsTests {
+
+    const TEST_PASS: UInt32 = 0;
+    const TEST_FAIL: UInt32 = 1;
+
+    const CMD_QUIT: UInt64 = 9602;
+    const CMD_SEARCH: UInt64 = 9604;
+
+    const CMD_STATUS_QUIT: UInt32 = 1;
+    const CMD_STATUS_INVALID: UInt32 = 2;
+
+    const KEY_CTRL_Q: UInt32 = 17;
+    const KEY_CTRL_F: UInt32 = 6;
+
+    proc K::expect_u32(actual: UInt32, expected: UInt32) -> UInt32 {
+        if actual == expected {
+            return TEST_PASS;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::expect_u64(actual: UInt64, expected: UInt64) -> UInt32 {
+        if actual == expected {
+            return TEST_PASS;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::combine(lhs: UInt32, rhs: UInt32) -> UInt32 {
+        if lhs == TEST_PASS {
+            return rhs;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::test_command_from_key() -> UInt32 {
+        let quit = command_from_key(KEY_CTRL_Q);
+        let search = command_from_key(KEY_CTRL_F);
+        let unknown = command_from_key(255);
+
+        let t1 = expect_u64(quit, CMD_QUIT);
+        let t2 = expect_u64(search, CMD_SEARCH);
+        let t3 = expect_u64(unknown, 0);
+
+        let u1 = combine(t1, t2);
+        return combine(u1, t3);
+    }
+
+    proc K::test_run_key_command_quit() -> UInt32 {
+        let status = run_key_command(KEY_CTRL_Q);
+        return expect_u32(status, CMD_STATUS_QUIT);
+    }
+
+    proc K::test_run_key_command_invalid() -> UInt32 {
+        let status = run_key_command(255);
+        return expect_u32(status, CMD_STATUS_INVALID);
+    }
+
+    proc K::test_command_goto_line() -> UInt32 {
+        let status = command_goto_line(1);
+        return expect_u32(status, 0);
+    }
+
+    proc K::run_all_tests() -> UInt32 {
+        let t1 = test_command_from_key();
+        let t2 = combine(t1, test_run_key_command_quit());
+        let t3 = combine(t2, test_run_key_command_invalid());
+        return combine(t3, test_command_goto_line());
+    }
+}

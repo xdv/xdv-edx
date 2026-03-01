@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Dust LLC, and Contributors
 // Description:
 //   edx command handlers.
+//   Deterministic command and keypath dispatch.
 
 forge EdxCommands {
 
@@ -11,29 +12,83 @@ forge EdxCommands {
     const CMD_SEARCH: UInt64 = 9604;
     const CMD_GOTO: UInt64 = 9605;
 
+    const CMD_STATUS_OK: UInt32 = 0;
+    const CMD_STATUS_QUIT: UInt32 = 1;
+    const CMD_STATUS_INVALID: UInt32 = 2;
+
+    const KEY_CTRL_Q: UInt32 = 17;
+    const KEY_CTRL_S: UInt32 = 19;
+    const KEY_CTRL_F: UInt32 = 6;
+    const KEY_CTRL_G: UInt32 = 7;
+
+    const DEFAULT_SEARCH_QUERY: UInt64 = 9610;
+
     proc K::command_save() -> UInt32 {
         return editor_save();
     }
 
     proc K::command_quit() -> UInt32 {
-        return 1;
+        return CMD_STATUS_QUIT;
     }
 
     proc K::command_save_quit() -> UInt32 {
-        command_save();
-        return command_quit();
+        let save = command_save();
+        if save == CMD_STATUS_OK {
+            return command_quit();
+        } else {
+            return save;
+        }
     }
 
     proc K::command_search(query_ptr: UInt64) -> UInt32 {
-        return search_next(query_ptr);
+        if query_ptr == 0 {
+            return search_next(DEFAULT_SEARCH_QUERY);
+        } else {
+            return search_next(query_ptr);
+        }
     }
 
     proc K::command_goto_line(line_number: UInt32) -> UInt32 {
         if line_number == 0 {
-            return 1;
+            return CMD_STATUS_INVALID;
         } else {
-            set_cursor(line_number - 1, 0);
-            return 0;
+            let max_lines = buffer_get_line_count();
+            if line_number > max_lines {
+                set_cursor(max_lines - 1, 0);
+                return CMD_STATUS_OK;
+            } else {
+                set_cursor(line_number - 1, 0);
+                return CMD_STATUS_OK;
+            }
+        }
+    }
+
+    proc K::command_from_key(key: UInt32) -> UInt64 {
+        if key == KEY_CTRL_S {
+            return CMD_SAVE;
+        } else {
+            if key == KEY_CTRL_Q {
+                return CMD_QUIT;
+            } else {
+                if key == KEY_CTRL_F {
+                    return CMD_SEARCH;
+                } else {
+                    if key == KEY_CTRL_G {
+                        return CMD_GOTO;
+                    } else {
+                        return 0;
+                    }
+                }
+            }
+        }
+    }
+
+    proc K::run_key_command(key: UInt32) -> UInt32 {
+        let command_ptr = command_from_key(key);
+        if command_ptr == 0 {
+            return CMD_STATUS_INVALID;
+        } else {
+            return run_command(command_ptr);
         }
     }
 
@@ -48,12 +103,12 @@ forge EdxCommands {
                     return command_save_quit();
                 } else {
                     if command_ptr == CMD_SEARCH {
-                        return command_search(0);
+                        return command_search(DEFAULT_SEARCH_QUERY);
                     } else {
                         if command_ptr == CMD_GOTO {
                             return command_goto_line(1);
                         } else {
-                            return 1;
+                            return CMD_STATUS_INVALID;
                         }
                     }
                 }

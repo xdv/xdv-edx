@@ -1,0 +1,87 @@
+// File: edx_editor_tests.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Regression tests for editor key dispatch and buffer model transitions.
+
+forge EdxEditorTests {
+
+    const TEST_PASS: UInt32 = 0;
+    const TEST_FAIL: UInt32 = 1;
+
+    const EDITOR_RUNNING: UInt32 = 0;
+    const EDITOR_EXIT_REQUESTED: UInt32 = 1;
+
+    const KEY_CTRL_Q: UInt32 = 17;
+    const KEY_CTRL_H: UInt32 = 8;
+    const KEY_ARROW_LEFT: UInt32 = 1000;
+    const KEY_A: UInt32 = 97;
+
+    const BUFFER_MODEL_CLEAN: UInt32 = 0;
+    const BUFFER_MODEL_DIRTY: UInt32 = 1;
+
+    proc K::expect_u32(actual: UInt32, expected: UInt32) -> UInt32 {
+        if actual == expected {
+            return TEST_PASS;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::combine(lhs: UInt32, rhs: UInt32) -> UInt32 {
+        if lhs == TEST_PASS {
+            return rhs;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::test_pack_unpack_state_roundtrip() -> UInt32 {
+        let packed = editor_pack_state(EDITOR_RUNNING, BUFFER_MODEL_DIRTY);
+        let loop_state = editor_unpack_loop_state(packed);
+        let model = editor_unpack_buffer_model(packed, loop_state);
+
+        let t1 = expect_u32(loop_state, EDITOR_RUNNING);
+        let t2 = expect_u32(model, BUFFER_MODEL_DIRTY);
+        return combine(t1, t2);
+    }
+
+    proc K::test_ctrl_q_requests_exit() -> UInt32 {
+        let packed = editor_handle_key_state(KEY_CTRL_Q, BUFFER_MODEL_CLEAN);
+        let loop_state = editor_unpack_loop_state(packed);
+        return expect_u32(loop_state, EDITOR_EXIT_REQUESTED);
+    }
+
+    proc K::test_printable_sets_dirty_model() -> UInt32 {
+        let packed = editor_handle_key_state(KEY_A, BUFFER_MODEL_CLEAN);
+        let loop_state = editor_unpack_loop_state(packed);
+        let model = editor_unpack_buffer_model(packed, loop_state);
+
+        let t1 = expect_u32(loop_state, EDITOR_RUNNING);
+        let t2 = expect_u32(model, BUFFER_MODEL_DIRTY);
+        return combine(t1, t2);
+    }
+
+    proc K::test_motion_keeps_model() -> UInt32 {
+        let packed = editor_handle_key_state(KEY_ARROW_LEFT, BUFFER_MODEL_CLEAN);
+        let loop_state = editor_unpack_loop_state(packed);
+        let model = editor_unpack_buffer_model(packed, loop_state);
+
+        let t1 = expect_u32(loop_state, EDITOR_RUNNING);
+        let t2 = expect_u32(model, BUFFER_MODEL_CLEAN);
+        return combine(t1, t2);
+    }
+
+    proc K::test_ctrl_h_help_path_keeps_running() -> UInt32 {
+        let packed = editor_handle_key_state(KEY_CTRL_H, BUFFER_MODEL_CLEAN);
+        let loop_state = editor_unpack_loop_state(packed);
+        return expect_u32(loop_state, EDITOR_RUNNING);
+    }
+
+    proc K::run_all_tests() -> UInt32 {
+        let t1 = test_pack_unpack_state_roundtrip();
+        let t2 = combine(t1, test_ctrl_q_requests_exit());
+        let t3 = combine(t2, test_printable_sets_dirty_model());
+        let t4 = combine(t3, test_motion_keeps_model());
+        return combine(t4, test_ctrl_h_help_path_keeps_running());
+    }
+}

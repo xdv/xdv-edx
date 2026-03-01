@@ -2,14 +2,32 @@
 // Copyright (c) 2026 Dust LLC, and Contributors
 // Description:
 //   edx key input and decode helpers.
+//   Deterministic key classification and keypath helpers.
 
 forge EdxInput {
 
     const KEY_ESCAPE: UInt32 = 27;
+    const KEY_ENTER: UInt32 = 13;
+    const KEY_BACKSPACE: UInt32 = 127;
+
+    const KEY_CTRL_Q: UInt32 = 17;
+    const KEY_CTRL_S: UInt32 = 19;
+    const KEY_CTRL_F: UInt32 = 6;
+    const KEY_CTRL_G: UInt32 = 7;
+    const KEY_CTRL_H: UInt32 = 8;
+
     const KEY_ARROW_LEFT: UInt32 = 1000;
     const KEY_ARROW_RIGHT: UInt32 = 1001;
     const KEY_ARROW_UP: UInt32 = 1002;
     const KEY_ARROW_DOWN: UInt32 = 1003;
+
+    const KEY_CLASS_UNKNOWN: UInt32 = 0;
+    const KEY_CLASS_CONTROL: UInt32 = 1;
+    const KEY_CLASS_MOTION: UInt32 = 2;
+    const KEY_CLASS_EDIT: UInt32 = 3;
+    const KEY_CLASS_PRINTABLE: UInt32 = 4;
+
+    const KEYPATH_CLASS_FACTOR: UInt64 = 100000;
 
     const ASCII_PRINTABLE_MIN: UInt32 = 32;
     const ASCII_PRINTABLE_MAX: UInt32 = 126;
@@ -61,13 +79,131 @@ forge EdxInput {
         }
     }
 
+    proc K::input_is_motion_key(key: UInt32) -> UInt32 {
+        if key == KEY_ARROW_LEFT {
+            return 1;
+        } else {
+            if key == KEY_ARROW_RIGHT {
+                return 1;
+            } else {
+                if key == KEY_ARROW_UP {
+                    return 1;
+                } else {
+                    if key == KEY_ARROW_DOWN {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                }
+            }
+        }
+    }
+
+    proc K::input_is_control_key(key: UInt32) -> UInt32 {
+        if key == KEY_CTRL_Q {
+            return 1;
+        } else {
+            if key == KEY_CTRL_S {
+                return 1;
+            } else {
+                if key == KEY_CTRL_F {
+                    return 1;
+                } else {
+                    if key == KEY_CTRL_G {
+                        return 1;
+                    } else {
+                        if key == KEY_CTRL_H {
+                            return 1;
+                        } else {
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    proc K::input_is_edit_key(key: UInt32) -> UInt32 {
+        if key == KEY_ENTER {
+            return 1;
+        } else {
+            if key == KEY_BACKSPACE {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
+
+    proc K::input_classify_key(key: UInt32) -> UInt32 {
+        if input_is_control_key(key) == 1 {
+            return KEY_CLASS_CONTROL;
+        } else {
+            if input_is_motion_key(key) == 1 {
+                return KEY_CLASS_MOTION;
+            } else {
+                if input_is_edit_key(key) == 1 {
+                    return KEY_CLASS_EDIT;
+                } else {
+                    if input_is_printable(key) == 1 {
+                        return KEY_CLASS_PRINTABLE;
+                    } else {
+                        return KEY_CLASS_UNKNOWN;
+                    }
+                }
+            }
+        }
+    }
+
+    proc K::input_pack_keypath(key_class: UInt32, key_value: UInt32) -> UInt64 {
+        return (key_class * KEYPATH_CLASS_FACTOR) + key_value;
+    }
+
+    proc K::input_unpack_keyclass(packed: UInt64) -> UInt32 {
+        return packed / KEYPATH_CLASS_FACTOR;
+    }
+
+    proc K::input_unpack_keyvalue(packed: UInt64, key_class: UInt32) -> UInt32 {
+        return packed - (key_class * KEYPATH_CLASS_FACTOR);
+    }
+
+    proc K::input_keypath_for(key: UInt32) -> UInt64 {
+        let key_class = input_classify_key(key);
+        return input_pack_keypath(key_class, key);
+    }
+
     proc K::read_command_line(prompt_ptr: UInt64, output_ptr: UInt64, max_len: UInt32) -> UInt32 {
         puts(prompt_ptr);
         if max_len == 0 {
             return 1;
         } else {
-            read_key();
-            return 0;
+            // output_ptr is reserved for future buffer write integration.
+            return read_command_line_state(max_len, 0);
+        }
+    }
+
+    proc K::read_command_line_state(max_len: UInt32, current_len: UInt32) -> UInt32 {
+        let key = read_key();
+        if key == KEY_ENTER {
+            return current_len;
+        } else {
+            if key == KEY_BACKSPACE {
+                if current_len == 0 {
+                    return read_command_line_state(max_len, 0);
+                } else {
+                    return read_command_line_state(max_len, current_len - 1);
+                }
+            } else {
+                if input_is_printable(key) == 1 {
+                    if current_len >= max_len {
+                        return max_len;
+                    } else {
+                        return read_command_line_state(max_len, current_len + 1);
+                    }
+                } else {
+                    return read_command_line_state(max_len, current_len);
+                }
+            }
         }
     }
 }

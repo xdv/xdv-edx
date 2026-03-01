@@ -1,0 +1,79 @@
+// File: edx_buffer_tests.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Regression tests for deterministic buffer model behavior.
+
+forge EdxBufferTests {
+
+    const TEST_PASS: UInt32 = 0;
+    const TEST_FAIL: UInt32 = 1;
+
+    const BUFFER_STATUS_OK: UInt32 = 0;
+    const BUFFER_STATUS_INVALID_PATH: UInt32 = 1;
+    const BUFFER_STATUS_INVALID_MODEL: UInt32 = 2;
+
+    const BUFFER_MODEL_CLEAN: UInt32 = 0;
+    const BUFFER_MODEL_DIRTY: UInt32 = 1;
+
+    const KEY_CLASS_PRINTABLE: UInt32 = 4;
+
+    proc K::expect_u32(actual: UInt32, expected: UInt32) -> UInt32 {
+        if actual == expected {
+            return TEST_PASS;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::combine(lhs: UInt32, rhs: UInt32) -> UInt32 {
+        if lhs == TEST_PASS {
+            return rhs;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::test_validate_model() -> UInt32 {
+        let clean = buffer_validate_model(BUFFER_MODEL_CLEAN);
+        let dirty = buffer_validate_model(BUFFER_MODEL_DIRTY);
+        let invalid = buffer_validate_model(99);
+
+        let t1 = expect_u32(clean, BUFFER_STATUS_OK);
+        let t2 = expect_u32(dirty, BUFFER_STATUS_OK);
+        let t3 = expect_u32(invalid, BUFFER_STATUS_INVALID_MODEL);
+
+        let u1 = combine(t1, t2);
+        return combine(u1, t3);
+    }
+
+    proc K::test_keypath_dirty_transition() -> UInt32 {
+        let next = buffer_apply_keypath(BUFFER_MODEL_CLEAN, KEY_CLASS_PRINTABLE, 97);
+        return expect_u32(next, BUFFER_MODEL_DIRTY);
+    }
+
+    proc K::test_pack_unpack_roundtrip() -> UInt32 {
+        let packed = buffer_pack_state(5, BUFFER_MODEL_DIRTY);
+        let lines = buffer_unpack_line_count(packed);
+        let model = buffer_unpack_model(packed, lines);
+
+        let t1 = expect_u32(lines, 5);
+        let t2 = expect_u32(model, BUFFER_MODEL_DIRTY);
+        return combine(t1, t2);
+    }
+
+    proc K::test_current_file_contract() -> UInt32 {
+        let bad = buffer_set_current_file(0);
+        let ok = buffer_set_current_file(9803);
+
+        let t1 = expect_u32(bad, BUFFER_STATUS_INVALID_PATH);
+        let t2 = expect_u32(ok, BUFFER_STATUS_OK);
+        return combine(t1, t2);
+    }
+
+    proc K::run_all_tests() -> UInt32 {
+        let t1 = test_validate_model();
+        let t2 = combine(t1, test_keypath_dirty_transition());
+        let t3 = combine(t2, test_pack_unpack_roundtrip());
+        return combine(t3, test_current_file_contract());
+    }
+}

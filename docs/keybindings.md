@@ -2,13 +2,25 @@
 
 `xdv-edx` key handling is defined in `src/edx_editor.ds` and `src/edx_input.ds`.
 
-## Control commands
+## Key Classes
+
+- `control`
+- `motion`
+- `edit`
+- `printable`
+- `unknown`
+
+Classification entrypoint: `input_classify_key(key)`.
+
+## Control Commands
 
 - `Ctrl+Q`: quit request
 - `Ctrl+S`: save
 - `Ctrl+F`: search
 - `Ctrl+G`: goto line
 - `Ctrl+H`: help overlay
+
+Control keys route through command/keypath dispatch (`run_key_command`).
 
 ## Navigation
 
@@ -19,13 +31,17 @@
 
 Arrow keys are decoded from escape sequences in `edx_input.ds`.
 
-## Editing keys
+## Editing Keys
 
-- `Enter`: insert newline
-- `Backspace`: delete one character backward
-- printable ASCII (`32..126`): insert character
+- `Enter`: insert newline and move to start of next row
+- `Backspace`: delete-left behavior with cursor-left update
+- printable ASCII (`32..126`): insert character and move cursor right
 
-## Notes
+## Keypath Helpers
 
-- Unknown/non-printable keys outside mapped controls are ignored by the editor
-  loop in the current implementation.
+`edx_input` provides packed keypath helpers for deterministic command routing:
+
+- `input_pack_keypath(class, key)`
+- `input_unpack_keyclass(packed)`
+- `input_unpack_keyvalue(packed, class)`
+- `input_keypath_for(key)`

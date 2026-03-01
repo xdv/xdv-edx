@@ -2,12 +2,16 @@
 // Copyright (c) 2026 Dust LLC, and Contributors
 // Description:
 //   edx screen rendering.
+//   Deterministic render model aligned to buffer/cursor state.
 
 forge EdxScreen {
 
     const SCREEN_WIDTH: UInt32 = 80;
     const SCREEN_HEIGHT: UInt32 = 25;
+    const STATUS_ROWS: UInt32 = 2;
     const TEXT_ROWS: UInt32 = 23;
+
+    const RENDER_OK: UInt32 = 0;
 
     const DRAW_NEWLINE: UInt8 = 10;
     const DRAW_SPACE: UInt8 = 32;
@@ -16,31 +20,62 @@ forge EdxScreen {
     proc K::screen_init() -> UInt32 {
         clear();
         set_color(15, 0);
-        return 0;
+        return RENDER_OK;
     }
 
     proc K::screen_clear() -> UInt32 {
         clear();
-        return 0;
+        return RENDER_OK;
+    }
+
+    proc K::screen_visible_rows() -> UInt32 {
+        if SCREEN_HEIGHT > STATUS_ROWS {
+            return SCREEN_HEIGHT - STATUS_ROWS;
+        } else {
+            return TEXT_ROWS;
+        }
+    }
+
+    proc K::screen_compute_rows_to_draw(buffer_line_count: UInt32) -> UInt32 {
+        let visible = screen_visible_rows();
+        if buffer_line_count == 0 {
+            return visible;
+        } else {
+            return visible;
+        }
     }
 
     proc K::render_frame() -> UInt32 {
         screen_clear();
-        draw_rows(TEXT_ROWS);
+        let line_count = buffer_get_line_count();
+        let row_count = screen_compute_rows_to_draw(line_count);
+        draw_rows_state(0, row_count, line_count);
         status_draw_bar();
         status_draw_message();
         screen_position_cursor();
-        return 0;
+        return RENDER_OK;
     }
 
-    proc K::draw_rows(remaining_rows: UInt32) -> UInt32 {
-        if remaining_rows == 0 {
-            return 0;
+    proc K::draw_rows_state(row_index: UInt32, max_rows: UInt32, buffer_line_count: UInt32) -> UInt32 {
+        if row_index >= max_rows {
+            return RENDER_OK;
+        } else {
+            draw_single_row(row_index, buffer_line_count);
+            return draw_rows_state(row_index + 1, max_rows, buffer_line_count);
+        }
+    }
+
+    proc K::draw_single_row(row_index: UInt32, buffer_line_count: UInt32) -> UInt32 {
+        if row_index < buffer_line_count {
+            putchar(DRAW_SPACE);
+            putchar(DRAW_SPACE);
+            putchar(DRAW_NEWLINE);
+            return RENDER_OK;
         } else {
             putchar(DRAW_TILDE);
             putchar(DRAW_SPACE);
             putchar(DRAW_NEWLINE);
-            return draw_rows(remaining_rows - 1);
+            return RENDER_OK;
         }
     }
 
@@ -48,6 +83,6 @@ forge EdxScreen {
         let row = cursor_get_row();
         let col = cursor_get_col();
         set_cursor(row, col);
-        return 0;
+        return RENDER_OK;
     }
 }

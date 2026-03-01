@@ -1,0 +1,26 @@
+// File: edx_main_tests.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Aggregate regression tests for xdv-edx input/render/buffer and command paths.
+
+forge EdxMainTests {
+
+    const TEST_PASS: UInt32 = 0;
+    const TEST_FAIL: UInt32 = 1;
+
+    proc K::combine(lhs: UInt32, rhs: UInt32) -> UInt32 {
+        if lhs == TEST_PASS {
+            return rhs;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::run_all_tests() -> UInt32 {
+        let t1 = EdxBufferTests::K::run_all_tests();
+        let t2 = combine(t1, EdxInputTests::K::run_all_tests());
+        let t3 = combine(t2, EdxFileTests::K::run_all_tests());
+        let t4 = combine(t3, EdxCommandsTests::K::run_all_tests());
+        return combine(t4, EdxEditorTests::K::run_all_tests());
+    }
+}

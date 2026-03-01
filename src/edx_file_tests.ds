@@ -1,0 +1,66 @@
+// File: edx_file_tests.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Regression tests for xdvfs path contract and file normalization.
+
+forge EdxFileTests {
+
+    const TEST_PASS: UInt32 = 0;
+    const TEST_FAIL: UInt32 = 1;
+
+    const FILE_ERR_OK: UInt32 = 0;
+    const FILE_ERR_PATH_CONTRACT: UInt32 = 3;
+
+    const PATH_KIND_CONSOLE_EDITOR: UInt32 = 3;
+
+    const PATH_CONSOLE_DEFAULT_FILE: UInt64 = 9803;
+
+    proc K::expect_u32(actual: UInt32, expected: UInt32) -> UInt32 {
+        if actual == expected {
+            return TEST_PASS;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::expect_u64(actual: UInt64, expected: UInt64) -> UInt32 {
+        if actual == expected {
+            return TEST_PASS;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::combine(lhs: UInt32, rhs: UInt32) -> UInt32 {
+        if lhs == TEST_PASS {
+            return rhs;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::test_default_path_resolution() -> UInt32 {
+        let p = file_resolve_path(0);
+        return expect_u64(p, PATH_CONSOLE_DEFAULT_FILE);
+    }
+
+    proc K::test_contract_kind_for_default() -> UInt32 {
+        let kind = file_path_contract_kind(PATH_CONSOLE_DEFAULT_FILE);
+        return expect_u32(kind, PATH_KIND_CONSOLE_EDITOR);
+    }
+
+    proc K::test_contract_validation() -> UInt32 {
+        let bad = file_validate_xdvfs_path(0);
+        let ok = file_validate_xdvfs_path(PATH_CONSOLE_DEFAULT_FILE);
+
+        let t1 = expect_u32(bad, FILE_ERR_PATH_CONTRACT);
+        let t2 = expect_u32(ok, FILE_ERR_OK);
+        return combine(t1, t2);
+    }
+
+    proc K::run_all_tests() -> UInt32 {
+        let t1 = test_default_path_resolution();
+        let t2 = combine(t1, test_contract_kind_for_default());
+        return combine(t2, test_contract_validation());
+    }
+}

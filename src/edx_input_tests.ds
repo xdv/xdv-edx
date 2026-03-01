@@ -1,0 +1,84 @@
+// File: edx_input_tests.ds - This file is part of XDV
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Regression tests for key decode and keypath classification.
+
+forge EdxInputTests {
+
+    const TEST_PASS: UInt32 = 0;
+    const TEST_FAIL: UInt32 = 1;
+
+    const KEY_CLASS_CONTROL: UInt32 = 1;
+    const KEY_CLASS_MOTION: UInt32 = 2;
+    const KEY_CLASS_EDIT: UInt32 = 3;
+    const KEY_CLASS_PRINTABLE: UInt32 = 4;
+
+    const KEY_CTRL_S: UInt32 = 19;
+    const KEY_ARROW_LEFT: UInt32 = 1000;
+    const KEY_ENTER: UInt32 = 13;
+    const KEY_A: UInt32 = 97;
+
+    proc K::expect_u32(actual: UInt32, expected: UInt32) -> UInt32 {
+        if actual == expected {
+            return TEST_PASS;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::combine(lhs: UInt32, rhs: UInt32) -> UInt32 {
+        if lhs == TEST_PASS {
+            return rhs;
+        } else {
+            return TEST_FAIL;
+        }
+    }
+
+    proc K::test_classification_matrix() -> UInt32 {
+        let c = input_classify_key(KEY_CTRL_S);
+        let m = input_classify_key(KEY_ARROW_LEFT);
+        let e = input_classify_key(KEY_ENTER);
+        let p = input_classify_key(KEY_A);
+
+        let t1 = expect_u32(c, KEY_CLASS_CONTROL);
+        let t2 = expect_u32(m, KEY_CLASS_MOTION);
+        let t3 = expect_u32(e, KEY_CLASS_EDIT);
+        let t4 = expect_u32(p, KEY_CLASS_PRINTABLE);
+
+        let u1 = combine(t1, t2);
+        let u2 = combine(u1, t3);
+        return combine(u2, t4);
+    }
+
+    proc K::test_keypath_pack_unpack() -> UInt32 {
+        let packed = input_pack_keypath(KEY_CLASS_CONTROL, KEY_CTRL_S);
+        let cls = input_unpack_keyclass(packed);
+        let key = input_unpack_keyvalue(packed, cls);
+
+        let t1 = expect_u32(cls, KEY_CLASS_CONTROL);
+        let t2 = expect_u32(key, KEY_CTRL_S);
+        return combine(t1, t2);
+    }
+
+    proc K::test_printable_bounds() -> UInt32 {
+        let low = input_is_printable(31);
+        let mid = input_is_printable(32);
+        let high = input_is_printable(126);
+        let out = input_is_printable(127);
+
+        let t1 = expect_u32(low, 0);
+        let t2 = expect_u32(mid, 1);
+        let t3 = expect_u32(high, 1);
+        let t4 = expect_u32(out, 0);
+
+        let u1 = combine(t1, t2);
+        let u2 = combine(u1, t3);
+        return combine(u2, t4);
+    }
+
+    proc K::run_all_tests() -> UInt32 {
+        let t1 = test_classification_matrix();
+        let t2 = combine(t1, test_keypath_pack_unpack());
+        return combine(t2, test_printable_bounds());
+    }
+}

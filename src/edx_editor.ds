@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Dust LLC, and Contributors
 // Description:
 //   edx editor core loop and key dispatch.
+//   Deterministic input -> command/keypath -> buffer-model flow.
 
 forge EdxEditor {
 
@@ -10,8 +11,6 @@ forge EdxEditor {
 
     const KEY_CTRL_S: UInt32 = 19;
     const KEY_CTRL_Q: UInt32 = 17;
-    const KEY_CTRL_F: UInt32 = 6;
-    const KEY_CTRL_G: UInt32 = 7;
     const KEY_CTRL_H: UInt32 = 8;
 
     const KEY_ENTER: UInt32 = 13;
@@ -22,9 +21,34 @@ forge EdxEditor {
     const KEY_ARROW_UP: UInt32 = 1002;
     const KEY_ARROW_DOWN: UInt32 = 1003;
 
+    const KEY_CLASS_CONTROL: UInt32 = 1;
+    const KEY_CLASS_MOTION: UInt32 = 2;
+    const KEY_CLASS_EDIT: UInt32 = 3;
+    const KEY_CLASS_PRINTABLE: UInt32 = 4;
+
+    const PACK_STATE_FACTOR: UInt32 = 100;
+
+    const CMD_STATUS_OK: UInt32 = 0;
+    const CMD_STATUS_QUIT: UInt32 = 1;
+    const CMD_STATUS_INVALID: UInt32 = 2;
+
     const MSG_EDITOR_READY: UInt64 = 9400;
     const MSG_EDITOR_SAVED: UInt64 = 9401;
     const MSG_EDITOR_QUIT: UInt64 = 9402;
+    const MSG_EDITOR_SAVE_FAILED: UInt64 = 9403;
+    const MSG_EDITOR_OPEN_FAILED: UInt64 = 9404;
+
+    proc K::editor_pack_state(loop_state: UInt32, buffer_model: UInt32) -> UInt32 {
+        return (loop_state * PACK_STATE_FACTOR) + buffer_model;
+    }
+
+    proc K::editor_unpack_loop_state(packed_state: UInt32) -> UInt32 {
+        return packed_state / PACK_STATE_FACTOR;
+    }
+
+    proc K::editor_unpack_buffer_model(packed_state: UInt32, loop_state: UInt32) -> UInt32 {
+        return packed_state - (loop_state * PACK_STATE_FACTOR);
+    }
 
     proc K::editor_init() -> UInt32 {
         screen_init();
@@ -36,11 +60,13 @@ forge EdxEditor {
     }
 
     proc K::editor_open(path: UInt64) -> UInt32 {
-        if path == 0 {
+        let open_result = file_open_into_buffer(path);
+        if open_result == EDITOR_RUNNING {
             status_set_message(MSG_EDITOR_READY);
             return EDITOR_RUNNING;
         } else {
-            return file_open_into_buffer(path);
+            status_set_error(MSG_EDITOR_OPEN_FAILED);
+            return open_result;
         }
     }
 
@@ -52,91 +78,125 @@ forge EdxEditor {
             status_set_message(MSG_EDITOR_SAVED);
             return EDITOR_RUNNING;
         } else {
-            status_set_error(MSG_EDITOR_SAVED);
+            status_set_error(MSG_EDITOR_SAVE_FAILED);
             return save_result;
         }
     }
 
     proc K::editor_run_loop(remaining_ticks: UInt32) -> UInt32 {
+        let initial_model = buffer_init_model();
+        return editor_run_loop_state(remaining_ticks, initial_model);
+    }
+
+    proc K::editor_run_loop_state(remaining_ticks: UInt32, buffer_model: UInt32) -> UInt32 {
         if remaining_ticks == 0 {
             return EDITOR_RUNNING;
         } else {
             render_frame();
-            let loop_state = editor_handle_input();
+            let packed = editor_handle_input_state(buffer_model);
+            let loop_state = editor_unpack_loop_state(packed);
+            let next_model = editor_unpack_buffer_model(packed, loop_state);
             if loop_state == EDITOR_EXIT_REQUESTED {
                 status_set_message(MSG_EDITOR_QUIT);
                 return EDITOR_RUNNING;
             } else {
-                return editor_run_loop(remaining_ticks - 1);
+                return editor_run_loop_state(remaining_ticks - 1, next_model);
             }
         }
     }
 
     proc K::editor_handle_input() -> UInt32 {
+        let packed = editor_handle_input_state(buffer_init_model());
+        return editor_unpack_loop_state(packed);
+    }
+
+    proc K::editor_handle_input_state(buffer_model: UInt32) -> UInt32 {
         let key = read_key();
-        return editor_handle_key(key);
+        return editor_handle_key_state(key, buffer_model);
     }
 
     proc K::editor_handle_key(key: UInt32) -> UInt32 {
-        if key == KEY_CTRL_Q {
-            return EDITOR_EXIT_REQUESTED;
-        } else {
-            if key == KEY_CTRL_S {
-                editor_save();
-                return EDITOR_RUNNING;
+        let packed = editor_handle_key_state(key, buffer_init_model());
+        return editor_unpack_loop_state(packed);
+    }
+
+    proc K::editor_handle_key_state(key: UInt32, buffer_model: UInt32) -> UInt32 {
+        let key_class = input_classify_key(key);
+        if key_class == KEY_CLASS_CONTROL {
+            if key == KEY_CTRL_H {
+                help_show();
+                return editor_pack_state(EDITOR_RUNNING, buffer_model);
             } else {
-                if key == KEY_CTRL_F {
-                    command_search(0);
-                    return EDITOR_RUNNING;
+                let command_status = run_key_command(key);
+                if command_status == CMD_STATUS_QUIT {
+                    return editor_pack_state(EDITOR_EXIT_REQUESTED, buffer_model);
                 } else {
-                    if key == KEY_CTRL_G {
-                        command_goto_line(1);
-                        return EDITOR_RUNNING;
+                    if command_status == CMD_STATUS_INVALID {
+                        return editor_pack_state(EDITOR_RUNNING, buffer_model);
                     } else {
-                        if key == KEY_CTRL_H {
-                            help_show();
-                            return EDITOR_RUNNING;
-                        } else {
-                            if key == KEY_ENTER {
-                                buffer_insert_newline();
-                                return EDITOR_RUNNING;
+                        if key == KEY_CTRL_S {
+                            if command_status == CMD_STATUS_OK {
+                                let clean_model = buffer_clear_dirty_model(buffer_model);
+                                return editor_pack_state(EDITOR_RUNNING, clean_model);
                             } else {
-                                if key == KEY_BACKSPACE {
-                                    buffer_backspace();
-                                    return EDITOR_RUNNING;
-                                } else {
-                                    return editor_handle_motion_or_text(key);
-                                }
+                                status_set_error(MSG_EDITOR_SAVE_FAILED);
+                                return editor_pack_state(EDITOR_RUNNING, buffer_model);
                             }
+                        } else {
+                            return editor_pack_state(EDITOR_RUNNING, buffer_model);
                         }
                     }
                 }
+            }
+        } else {
+            if key_class == KEY_CLASS_EDIT {
+                if key == KEY_ENTER {
+                    buffer_insert_newline();
+                    cursor_move_down();
+                    set_cursor(cursor_get_row(), 0);
+                } else {
+                    if key == KEY_BACKSPACE {
+                        buffer_backspace();
+                        cursor_move_left();
+                    }
+                }
+                let next_model = buffer_apply_keypath(buffer_model, key_class, key);
+                return editor_pack_state(EDITOR_RUNNING, next_model);
+            } else {
+                return editor_handle_motion_or_text_state(key, key_class, buffer_model);
             }
         }
     }
 
     proc K::editor_handle_motion_or_text(key: UInt32) -> UInt32 {
+        let packed = editor_handle_motion_or_text_state(key, input_classify_key(key), buffer_init_model());
+        return editor_unpack_loop_state(packed);
+    }
+
+    proc K::editor_handle_motion_or_text_state(key: UInt32, key_class: UInt32, buffer_model: UInt32) -> UInt32 {
         if key == KEY_ARROW_LEFT {
             cursor_move_left();
-            return EDITOR_RUNNING;
+            return editor_pack_state(EDITOR_RUNNING, buffer_model);
         } else {
             if key == KEY_ARROW_RIGHT {
                 cursor_move_right();
-                return EDITOR_RUNNING;
+                return editor_pack_state(EDITOR_RUNNING, buffer_model);
             } else {
                 if key == KEY_ARROW_UP {
                     cursor_move_up();
-                    return EDITOR_RUNNING;
+                    return editor_pack_state(EDITOR_RUNNING, buffer_model);
                 } else {
                     if key == KEY_ARROW_DOWN {
                         cursor_move_down();
-                        return EDITOR_RUNNING;
+                        return editor_pack_state(EDITOR_RUNNING, buffer_model);
                     } else {
-                        if input_is_printable(key) == 1 {
+                        if key_class == KEY_CLASS_PRINTABLE {
                             buffer_insert_char(key);
-                            return EDITOR_RUNNING;
+                            cursor_move_right();
+                            let next_model = buffer_apply_keypath(buffer_model, key_class, key);
+                            return editor_pack_state(EDITOR_RUNNING, next_model);
                         } else {
-                            return EDITOR_RUNNING;
+                            return editor_pack_state(EDITOR_RUNNING, buffer_model);
                         }
                     }
                 }

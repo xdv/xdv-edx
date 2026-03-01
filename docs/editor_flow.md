@@ -1,47 +1,70 @@
 # Editor Flow
 
-This document describes the current runtime path in `xdv-edx`.
+This document describes the runtime path in `xdv-edx`.
 
 ## Entry
 
-- `edx_bridge.ds`:
-  - `init()`: emits bridge-online signal.
+- `edx_bridge.ds`
+  - `init()`: bridge online signal.
   - `launch(path)`: forwards to `main(path)`.
-- `edx_main.ds`:
+- `edx_main.ds`
   - `main(path) -> boot(path)`.
   - `boot(path)`: `init()` then `launch(path)`.
-  - `init()`: calls `editor_init()`.
-  - `launch(path)`: calls `editor_open(path)` then `run()`.
+  - `init()`: `editor_init()`.
+  - `launch(path)`: `editor_open(path)` then `run()`.
   - `run()`: executes `editor_run_loop(DEFAULT_TICKS)`.
 
-## Editor Loop
+## Deterministic Loop Model
 
-- `edx_editor.ds`:
-  - `editor_init()` initializes screen, buffer, cursor, and ready status.
-  - `editor_open(path)` opens file if path is provided.
-  - `editor_run_loop(remaining_ticks)`:
-    - renders frame,
-    - reads one key,
-    - dispatches key behavior,
-    - recurses until tick window expires or quit path is requested.
+`edx_editor.ds` uses packed loop state:
 
-## Input Dispatch
+- `loop_state` (`running` or `exit requested`)
+- `buffer_model` (`clean` or `dirty`)
 
-- Control keys:
-  - `Ctrl+Q`: request exit
-  - `Ctrl+S`: save
-  - `Ctrl+F`: search
-  - `Ctrl+G`: goto line
-  - `Ctrl+H`: help
-- Editing keys:
-  - `Enter`: newline
-  - `Backspace`: delete-left behavior
-  - Arrow keys: cursor movement
-  - Printable ASCII: insert char
+Flow per tick:
 
-## Current Limits
+1. render frame,
+2. read key,
+3. classify key (`control`/`motion`/`edit`/`printable`),
+4. route command path,
+5. apply buffer-model transition,
+6. recurse with next packed state.
 
-- File read/write paths are interface-level and currently write/read fixed-size
-  buffers in the model implementation.
-- Search path currently requires non-zero query pointer and does not yet expose
-  full interactive query collection in this module.
+## Input and Command Path
+
+- `Ctrl+Q` -> quit request
+- `Ctrl+S` -> save via command plane
+- `Ctrl+F` -> search command
+- `Ctrl+G` -> goto command
+- `Ctrl+H` -> help overlay
+
+Editing/motion keys are handled in deterministic key-class branches.
+
+## Render Model
+
+`edx_screen` renders with buffer-aware row selection:
+
+- computes visible text rows,
+- draws content rows for current buffer line-count window,
+- fills remaining rows with `~`,
+- draws status bar/message and positions cursor.
+
+## File IO and xdvfs Contract
+
+`edx_file` enforces xdvfs path contract checks before open/save:
+
+- path normalization (`file_resolve_path`),
+- contract kind detection (`file_path_contract_kind`),
+- validation gate (`file_validate_xdvfs_path`),
+- then read/write + buffer binding.
+
+## Regression Coverage
+
+Regression coverage is implemented in:
+
+- `edx_buffer_tests.ds`
+- `edx_input_tests.ds`
+- `edx_file_tests.ds`
+- `edx_commands_tests.ds`
+- `edx_editor_tests.ds`
+- `edx_main_tests.ds` (aggregate)
